@@ -30,6 +30,11 @@ namespace Grocery.App.ViewModels
             _productService = productService;
             _fileSaverService = fileSaverService;
             Load(groceryList.Id);
+
+            MessagingCenter.Subscribe<NewProductViewModel>(this, "RefreshProducts", _ =>
+            {
+                GetAvailableProducts();
+            });
         }
 
         private void Load(int id)
@@ -96,27 +101,49 @@ namespace Grocery.App.ViewModels
         [RelayCommand]
         public void IncreaseAmount(int productId)
         {
-            GroceryListItem? item = MyGroceryListItems.FirstOrDefault(x => x.ProductId == productId);
+            var item = MyGroceryListItems.FirstOrDefault(x => x.ProductId == productId);
             if (item == null) return;
-            if (item.Amount >= item.Product.Stock) return;
+
+            var p = _productService.Get(productId);
+            if (p == null || p.Stock <= 0) return;
+
             item.Amount++;
             _groceryListItemsService.Update(item);
-            item.Product.Stock--;
-            _productService.Update(item.Product);
-            OnGroceryListChanged(GroceryList);
+
+            p.Stock--;
+            _productService.Update(p);
+
+            Load(GroceryList.Id);
         }
 
         [RelayCommand]
         public void DecreaseAmount(int productId)
         {
-            GroceryListItem? item = MyGroceryListItems.FirstOrDefault(x => x.ProductId == productId);
+            var item = MyGroceryListItems.FirstOrDefault(x => x.ProductId == productId);
             if (item == null) return;
-            if (item.Amount <= 0) return;
-            item.Amount--;
-            _groceryListItemsService.Update(item);
-            item.Product.Stock++;
-            _productService.Update(item.Product);
-            OnGroceryListChanged(GroceryList);
+
+            var p = _productService.Get(productId);
+            if (p == null) return;
+
+            if (item.Amount <= 1)
+            {
+                _groceryListItemsService.Delete(item);
+                p.Stock++;
+                _productService.Update(p);
+            }
+            else
+            {
+                item.Amount--;
+                _groceryListItemsService.Update(item);
+                p.Stock++;
+                _productService.Update(p);
+            }
+
+            Load(GroceryList.Id);
         }
+
+
+        [RelayCommand]
+            private Task OpenNewProduct() => Shell.Current.GoToAsync(nameof(NewProductView));
     }
 }
