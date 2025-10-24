@@ -20,6 +20,11 @@ namespace Grocery.Core.Models
             ShelfLife = shelfLife;
             Price = price;
         }
+
+        public Product() : base (0, "")
+        {
+        }
+
         public override string? ToString()
         {
             return $"{Name} - {Stock} op voorraad";
