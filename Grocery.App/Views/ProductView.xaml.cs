@@ -4,9 +4,9 @@ namespace Grocery.App.Views;
 
 public partial class ProductView : ContentPage
 {
-	public ProductView(ProductViewModel viewModel)
+	public ProductView(ProductViewModel vm)
 	{
 		InitializeComponent();
-		BindingContext = viewModel;
+		BindingContext = vm;
 	}
 }
