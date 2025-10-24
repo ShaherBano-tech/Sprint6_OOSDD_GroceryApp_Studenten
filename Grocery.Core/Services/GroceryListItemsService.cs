@@ -24,9 +24,9 @@ namespace Grocery.Core.Services
 
         public List<GroceryListItem> GetAllOnGroceryListId(int groceryListId)
         {
-            List<GroceryListItem> groceryListItems = _groceriesRepository.GetAllOnGroceryListId(groceryListId);
-            FillService(groceryListItems);
-            return groceryListItems;
+            var items = _groceriesRepository.GetAllOnGroceryListId(groceryListId);
+            FillService(items);
+            return items;
         }
 
         public GroceryListItem Add(GroceryListItem item)
@@ -57,23 +57,42 @@ namespace Grocery.Core.Services
             }
         }
 
-        public List<BestSellingProducts> GetBestSellingProducts(int topX = 5)
+        public List<BestSellingProducts> GetBestSellingProducts(int topX = 0)
         {
-            Dictionary<Product, int> productCount = [];
-            GetAll().ForEach(g =>
+            var allProducts = _productRepository.GetAll();
+            var items = _groceriesRepository.GetAll();
+            var soldPerProductId = new Dictionary<int, int>();
+
+            foreach (var it in items)
             {
-                if (productCount.ContainsKey(g.Product)) productCount[g.Product] += g.Amount;
-                else productCount[g.Product] = 1;
-            });
-            var products = (from entry in productCount orderby entry.Value descending select entry).Take(topX);
-            List<BestSellingProducts> bestProducts = [];
-            int ranking = 0;
-            foreach (var p in products)
-            {
-                ranking++;
-                bestProducts.Add(new(p.Key.Id, p.Key.Name, p.Key.Stock, p.Value, ranking));
+                if (soldPerProductId.ContainsKey(it.ProductId))
+                    soldPerProductId[it.ProductId] += it.Amount;   
+                else
+                    soldPerProductId[it.ProductId] = it.Amount;
             }
-            return bestProducts;
+
+            var all = new List<BestSellingProducts>();
+            foreach (var p in allProducts)
+            {
+                int sold = soldPerProductId.TryGetValue(p.Id, out var s) ? s : 0;
+                all.Add(new BestSellingProducts(p.Id, p.Name, p.Stock, sold, 0));
+            }
+
+            var ordered = all
+                .OrderByDescending(x => x.NrOfSells)   
+                .ThenByDescending(x => x.Stock)
+                .ToList();
+
+            int rank = 0;
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                rank++;
+                var bp = ordered[i];
+                ordered[i] = new BestSellingProducts(bp.Id, bp.Name, bp.Stock, bp.NrOfSells, rank);
+            }
+
+            if (topX > 0) ordered = ordered.Take(topX).ToList();
+            return ordered;
         }
     }
 }
