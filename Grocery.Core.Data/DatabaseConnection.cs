@@ -14,7 +14,9 @@ namespace Grocery.Core.Data
             databaseName = ConnectionHelper.ConnectionStringValue("GroceryAppDb");
             //string workingDirectory = Environment.CurrentDirectory;
             string projectDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            string dbpath = "Data Source="+ Path.Combine(projectDirectory + databaseName);
+
+            string fullPath = Path.Combine(projectDirectory + databaseName);
+            string dbpath = "Data Source="+ fullPath;
             Connection = new SqliteConnection(dbpath);
         }
 
@@ -36,6 +38,7 @@ namespace Grocery.Core.Data
                 command.CommandText = commandText;
                 command.ExecuteNonQuery();
             }
+            CloseConnection();
         }
 
         public void InsertMultipleWithTransaction(List<string> linesToInsert)
@@ -56,6 +59,7 @@ namespace Grocery.Core.Data
             finally
             {
                 transaction.Dispose();
+                CloseConnection();
             }
         }
 
